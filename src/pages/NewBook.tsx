@@ -30,8 +30,8 @@ export default function NewBook() {
     }
   };
 
-  // Check authorization
-  const isAuthorized = user?.id && profile?.role && ['admin', 'librarian'].includes(profile.role);
+  // Check authorization - only librarians can add books
+  const isAuthorized = user?.id && profile?.role === 'librarian';
 
   if (!isAuthorized) {
     return (

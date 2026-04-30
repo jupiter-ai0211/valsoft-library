@@ -10,6 +10,7 @@ import { useAuthStore } from '../store/authStore';
 export default function EditBook() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuthStore();
 
   const [book, setBook] = useState<Book | null>(null);
   const [loading, setLoading] = useState(true);
@@ -77,10 +78,8 @@ export default function EditBook() {
     );
   }
 
-  const { profile } = useAuthStore();
-
-  // Check authorization
-  const isAuthorized = profile?.role && ['admin', 'librarian'].includes(profile.role);
+  // Check authorization - only librarians can edit books
+  const isAuthorized = profile?.role === 'librarian';
 
   if (!isAuthorized) {
     return (
