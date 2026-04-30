@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { canViewDashboard } from '../lib/roles';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,7 +10,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, profile } = useAuthStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +24,14 @@ export default function Login() {
       }
 
       await login(email, password);
-      navigate('/dashboard');
+      
+      // Navigate based on user role
+      // Members don't have access to dashboard, so redirect to book catalog
+      if (canViewDashboard(profile?.role)) {
+        navigate('/dashboard');
+      } else {
+        navigate('/books');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed';
       setError(message);
