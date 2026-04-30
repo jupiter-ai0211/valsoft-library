@@ -204,26 +204,44 @@ CREATE OR REPLACE TRIGGER on_loan_status_change
   AFTER INSERT OR UPDATE ON loans
   FOR EACH ROW EXECUTE FUNCTION public.update_book_status_on_loan();
 
--- Seed data (optional - run after tables are created)
--- Note: Uncomment and run separately after creating auth users
+-- Seed data (optional - run after creating users manually in Supabase UI)
+-- 
+-- IMPORTANT: First create these users in Supabase Authentication UI:
+-- 1. Go to Authentication → Users
+-- 2. Click "Add user" and create:
+--    - Email: admin@example.com, Password: Password123!
+--    - Email: librarian@example.com, Password: Password123!
+--    - Email: member@example.com, Password: Password123!
+-- 3. Then run the SQL below to assign roles
 
-/*
--- Create test admin user (password: Password123!)
-INSERT INTO auth.users (id, email, email_confirmed_at, raw_user_meta_data, created_at, updated_at)
-VALUES (
-  gen_random_uuid(),
-  'admin@example.com',
-  NOW(),
-  '{"full_name":"Admin User"}',
-  NOW(),
-  NOW()
-)
-ON CONFLICT (email) DO NOTHING;
+-- After creating users in Supabase UI, update their roles:
+UPDATE profiles 
+SET role = 'admin' 
+WHERE id = (SELECT id FROM auth.users WHERE email = 'admin@example.com' LIMIT 1)
+  AND id IS NOT NULL;
 
--- Add sample books
+UPDATE profiles 
+SET role = 'librarian' 
+WHERE id = (SELECT id FROM auth.users WHERE email = 'librarian@example.com' LIMIT 1)
+  AND id IS NOT NULL;
+
+UPDATE profiles 
+SET role = 'member' 
+WHERE id = (SELECT id FROM auth.users WHERE email = 'member@example.com' LIMIT 1)
+  AND id IS NOT NULL;
+
+-- Add sample books to library
 INSERT INTO books (title, author, isbn, category, published_year, description, cover_url, status)
-VALUES
+SELECT * FROM (VALUES
   ('Clean Code', 'Robert C. Martin', '978-0134685991', 'Technology', 2008, 'A Handbook of Agile Software Craftsmanship', 'https://images-na.ssl-images-amazon.com/images/P/0134685997.01.L.jpg', 'available'),
   ('The Pragmatic Programmer', 'David Thomas', '978-0201616224', 'Technology', 1999, 'Your Journey to Mastery', 'https://images-na.ssl-images-amazon.com/images/P/020161622X.01.L.jpg', 'available'),
-  ('Refactoring', 'Martin Fowler', '978-0201485677', 'Technology', 1999, 'Improving the Design of Existing Code', 'https://images-na.ssl-images-amazon.com/images/P/0201485672.01.L.jpg', 'available');
-*/
+  ('Refactoring', 'Martin Fowler', '978-0201485677', 'Technology', 1999, 'Improving the Design of Existing Code', 'https://images-na.ssl-images-amazon.com/images/P/0201485672.01.L.jpg', 'available'),
+  ('The Mythical Man-Month', 'Frederick Brooks', '978-0201835959', 'Technology', 1975, 'Essays on Software Engineering', 'https://images-na.ssl-images-amazon.com/images/P/0201835959.01.L.jpg', 'available'),
+  ('Code Complete', 'Steve McConnell', '978-0735619678', 'Technology', 2004, 'A Practical Handbook of Software Construction', 'https://images-na.ssl-images-amazon.com/images/P/0735619670.01.L.jpg', 'available'),
+  ('Design Patterns', 'Gang of Four', '978-0201633610', 'Technology', 1994, 'Elements of Reusable Object-Oriented Software', 'https://images-na.ssl-images-amazon.com/images/P/0201633612.01.L.jpg', 'available'),
+  ('The Art of Computer Programming', 'Donald Knuth', '978-0321751041', 'Technology', 1968, 'Fundamental Algorithms', 'https://images-na.ssl-images-amazon.com/images/P/0321751043.01.L.jpg', 'available'),
+  ('Introduction to Algorithms', 'Cormen', '978-0262033848', 'Technology', 2009, 'A Foundation for Computer Science', 'https://images-na.ssl-images-amazon.com/images/P/0262033844.01.L.jpg', 'available'),
+  ('The C Programming Language', 'Kernighan & Ritchie', '978-0131103627', 'Technology', 1988, 'The Definitive Reference', 'https://images-na.ssl-images-amazon.com/images/P/0131103628.01.L.jpg', 'available'),
+  ('SQL Performance Explained', 'Markus Winand', '978-3950307825', 'Technology', 2012, 'Everything Developers Need to Know about SQL Performance', 'https://images-na.ssl-images-amazon.com/images/P/3950307829.01.L.jpg', 'available')
+) AS v(title, author, isbn, category, published_year, description, cover_url, status)
+ON CONFLICT DO NOTHING;

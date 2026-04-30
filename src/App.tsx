@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 
@@ -17,11 +17,16 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
   const { fetchCurrentUser } = useAuthStore();
-
-  // Initialize auth on app load
-  useEffect(() => {
+  
+  // Memoize to prevent dependency issues
+  const initAuth = useCallback(() => {
     fetchCurrentUser();
-  }, []);
+  }, [fetchCurrentUser]);
+
+  // Restore auth session on app load
+  useEffect(() => {
+    initAuth();
+  }, [initAuth]);
 
   return (
     <BrowserRouter>

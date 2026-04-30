@@ -21,10 +21,13 @@ interface AuthStore {
   fetchCurrentUser: () => Promise<void>;
 }
 
+// Initialize Supabase session listener for auth persistence
+let isInitialized = false;
+
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   profile: null,
-  loading: false,
+  loading: true,  // Start as true to prevent premature redirects on page refresh
   error: null,
 
   setUser: (user) => set({ user }),
@@ -150,6 +153,27 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ error: message });
     } finally {
       set({ loading: false });
+      
+      // Set up auth state listener on first load
+      if (!isInitialized) {
+        isInitialized = true;
+        supabase.auth.onAuthStateChange(async (_event, session) => {
+          if (session?.user) {
+            set({ user: session.user });
+            // Fetch updated profile
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            if (profileData) {
+              set({ profile: profileData });
+            }
+          } else {
+            set({ user: null, profile: null });
+          }
+        });
+      }
     }
   },
 }));
