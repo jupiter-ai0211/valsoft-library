@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { canViewDashboard } from '../lib/roles';
+import { showToast } from '../lib/toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,10 +21,12 @@ export default function Login() {
     try {
       if (!email || !password) {
         setError('Please fill in all fields');
+        showToast.error('Please fill in all fields');
         return;
       }
 
       await login(email, password);
+      showToast.success('Welcome back! Signing you in...');
       
       // Navigate based on user role
       // Members don't have access to dashboard, so redirect to book catalog
@@ -35,6 +38,7 @@ export default function Login() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Login failed';
       setError(message);
+      showToast.error(message);
     } finally {
       setLoading(false);
     }

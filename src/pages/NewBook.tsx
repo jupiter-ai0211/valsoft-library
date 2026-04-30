@@ -5,6 +5,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import { CreateBookInput } from '../types/book';
 import { bookService } from '../services/bookService';
 import { useAuthStore } from '../store/authStore';
+import { showToast } from '../lib/toast';
 import { useState } from 'react';
 
 export default function NewBook() {
@@ -21,10 +22,12 @@ export default function NewBook() {
 
     try {
       await bookService.createBook(data, user.id);
+      showToast.success(`"${data.title}" added to the library!`);
       navigate('/books');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create book';
       setError(message);
+      showToast.error(message);
     } finally {
       setLoading(false);
     }

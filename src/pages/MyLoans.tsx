@@ -8,6 +8,7 @@ import { loanService } from '../services/loanService';
 import { bookService } from '../services/bookService';
 import { useAuthStore } from '../store/authStore';
 import { getBorrowingHistoryRecommendations, Recommendation } from '../lib/recommendations';
+import { showToast } from '../lib/toast';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 export default function MyLoans() {
@@ -62,9 +63,13 @@ export default function MyLoans() {
     try {
       await loanService.returnBook(loanId, bookId);
       setActiveLoans(activeLoans.filter(l => l.id !== loanId));
-      setReturnedLoans([...returnedLoans, activeLoans.find(l => l.id === loanId)!]);
+      const returnedLoan = activeLoans.find(l => l.id === loanId)!;
+      setReturnedLoans([...returnedLoans, returnedLoan]);
+      showToast.success(`Successfully returned "${returnedLoan.book?.title}"`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to return book');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to return book';
+      setError(errorMessage);
+      showToast.error(errorMessage);
     }
   };
 
@@ -93,8 +98,12 @@ export default function MyLoans() {
       } catch (recError) {
         console.error('Failed to refresh recommendations:', recError);
       }
+
+      showToast.success('Book borrowed successfully!');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to borrow book');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to borrow book';
+      setError(errorMessage);
+      showToast.error(errorMessage);
     } finally {
       setBorrowingLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import { showToast } from '../lib/toast';
 
 export default function Signup() {
   const [fullName, setFullName] = useState('');
@@ -21,25 +22,33 @@ export default function Signup() {
     try {
       // Validation
       if (!fullName || !email || !password || !confirmPassword) {
-        setError('Please fill in all fields');
+        const msg = 'Please fill in all fields';
+        setError(msg);
+        showToast.error(msg);
         return;
       }
 
       if (password !== confirmPassword) {
-        setError('Passwords do not match');
+        const msg = 'Passwords do not match';
+        setError(msg);
+        showToast.error(msg);
         return;
       }
 
       if (password.length < 6) {
-        setError('Password must be at least 6 characters');
+        const msg = 'Password must be at least 6 characters';
+        setError(msg);
+        showToast.error(msg);
         return;
       }
 
       await signup(email, password, fullName);
+      showToast.success('Account created successfully! Welcome to LibraFlow!');
       navigate('/dashboard');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Signup failed';
       setError(message);
+      showToast.error(message);
     } finally {
       setLoading(false);
     }

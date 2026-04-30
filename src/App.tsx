@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
 
 // Pages
@@ -30,6 +31,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Toaster />
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={<Login />} />

@@ -6,6 +6,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import { CreateBookInput, Book } from '../types/book';
 import { bookService } from '../services/bookService';
 import { useAuthStore } from '../store/authStore';
+import { showToast } from '../lib/toast';
 
 export default function EditBook() {
   const { id } = useParams<{ id: string }>();
@@ -42,10 +43,12 @@ export default function EditBook() {
 
     try {
       await bookService.updateBook(id, data);
+      showToast.success(`"${data.title}" updated successfully!`);
       navigate('/books');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to update book';
       setError(message);
+      showToast.error(message);
     } finally {
       setSubmitting(false);
     }

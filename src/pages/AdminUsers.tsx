@@ -4,6 +4,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import EmptyState from '../components/EmptyState';
 import { UserProfile } from '../types/user';
 import { userService } from '../services/userService';
+import { showToast } from '../lib/toast';
 import { AlertCircle, Shield, Users } from 'lucide-react';
 
 export default function AdminUsers() {
@@ -34,11 +35,15 @@ export default function AdminUsers() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
+      const userName = users.find(u => u.id === userId)?.full_name || 'User';
       await userService.updateUserRole(userId, newRole as any);
       setUsers(users.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
       setSelectedRole({ ...selectedRole, [userId]: newRole });
+      showToast.success(`${userName}'s role updated to ${newRole}!`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update role');
+      const message = err instanceof Error ? err.message : 'Failed to update role';
+      setError(message);
+      showToast.error(message);
     }
   };
 

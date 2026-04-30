@@ -10,6 +10,7 @@ import { loanService } from '../services/loanService';
 import { useAuthStore } from '../store/authStore';
 import { searchBooks, filterByStatus, filterByCategory, sortBooks } from '../lib/search';
 import { canManageBooks, canBorrowBooks } from '../lib/roles';
+import { showToast } from '../lib/toast';
 import { AlertCircle } from 'lucide-react';
 
 export default function Books() {
@@ -82,14 +83,19 @@ export default function Books() {
     if (!user?.id) return;
 
     try {
+      const bookTitle = books.find(b => b.id === bookId)?.title || 'Book';
       await loanService.borrowBook(bookId, user.id);
       setBorrowedBookIds([...borrowedBookIds, bookId]);
 
       // Update book status
       setBooks(books.map(b => b.id === bookId ? { ...b, status: 'borrowed' } : b));
       setFilteredBooks(filteredBooks.map(b => b.id === bookId ? { ...b, status: 'borrowed' } : b));
+      
+      showToast.success(`Successfully borrowed "${bookTitle}"!`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to borrow book');
+      const message = err instanceof Error ? err.message : 'Failed to borrow book';
+      setError(message);
+      showToast.error(message);
     }
   };
 
@@ -97,6 +103,8 @@ export default function Books() {
     try {
       const loan = borrowedBookIds.includes(bookId);
       if (!loan) return;
+
+      const bookTitle = books.find(b => b.id === bookId)?.title || 'Book';
 
       // Find the loan
       const loans = await loanService.getBookLoans(bookId);
@@ -109,9 +117,13 @@ export default function Books() {
         // Update book status
         setBooks(books.map(b => b.id === bookId ? { ...b, status: 'available' } : b));
         setFilteredBooks(filteredBooks.map(b => b.id === bookId ? { ...b, status: 'available' } : b));
+        
+        showToast.success(`Successfully returned "${bookTitle}"!`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to return book');
+      const message = err instanceof Error ? err.message : 'Failed to return book';
+      setError(message);
+      showToast.error(message);
     }
   };
 
@@ -123,10 +135,14 @@ export default function Books() {
     if (!window.confirm('Are you sure you want to delete this book?')) return;
 
     try {
+      const bookTitle = books.find(b => b.id === bookId)?.title || 'Book';
       await bookService.deleteBook(bookId);
       setBooks(books.filter(b => b.id !== bookId));
+      showToast.success(`"${bookTitle}" deleted successfully!`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete book');
+      const message = err instanceof Error ? err.message : 'Failed to delete book';
+      setError(message);
+      showToast.error(message);
     }
   };
 
