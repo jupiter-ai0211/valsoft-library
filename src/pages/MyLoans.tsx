@@ -3,7 +3,6 @@ import AppLayout from '../components/AppLayout';
 import EmptyState from '../components/EmptyState';
 import RecommendationCard from '../components/RecommendationCard';
 import { Loan } from '../types/loan';
-import { Book } from '../types/book';
 import { loanService } from '../services/loanService';
 import { bookService } from '../services/bookService';
 import { useAuthStore } from '../store/authStore';
@@ -78,7 +77,7 @@ export default function MyLoans() {
 
     try {
       setBorrowingLoading(true);
-      const newLoan = await loanService.borrowBook(bookId, user.id);
+      await loanService.borrowBook(bookId, user.id);
       
       // Add to active loans
       const updatedLoans = await loanService.getUserLoans(user.id, 'active');
