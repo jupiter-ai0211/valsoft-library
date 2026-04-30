@@ -62,6 +62,10 @@ CREATE INDEX idx_profiles_role ON profiles(role);
 CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 
+-- Add foreign key for loans -> profiles relationship (required for PostgREST joins)
+ALTER TABLE loans ADD CONSTRAINT fk_loans_user_profile 
+  FOREIGN KEY (user_id) REFERENCES profiles(id) ON DELETE CASCADE;
+
 -- Enable Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;

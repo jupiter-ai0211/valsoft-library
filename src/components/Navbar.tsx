@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X } from 'lucide-react';
 import { useAuthStore } from '../store/authStore';
 import { useState } from 'react';
-import { canManageBooks, canViewDashboard } from '../lib/roles';
+import { canViewDashboard } from '../lib/roles';
 
 export default function Navbar() {
   const { user, profile, logout } = useAuthStore();
@@ -42,11 +42,6 @@ export default function Navbar() {
             <Link to="/books" className="hover:bg-blue-700 px-3 py-2 rounded transition">
               Catalog
             </Link>
-            {canManageBooks(profile.role) && (
-              <Link to="/books/new" className="hover:bg-blue-700 px-3 py-2 rounded transition">
-                Add Book
-              </Link>
-            )}
             <Link to="/my-loans" className="hover:bg-blue-700 px-3 py-2 rounded transition">
               My Loans
             </Link>
@@ -100,15 +95,6 @@ export default function Navbar() {
             >
               Catalog
             </Link>
-            {canManageBooks(profile.role) && (
-              <Link
-                to="/books/new"
-                className="block hover:bg-blue-700 px-3 py-2 rounded transition"
-                onClick={() => setMenuOpen(false)}
-              >
-                Add Book
-              </Link>
-            )}
             <Link
               to="/my-loans"
               className="block hover:bg-blue-700 px-3 py-2 rounded transition"

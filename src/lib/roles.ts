@@ -1,7 +1,7 @@
 import { UserRole } from '../types/user';
 
 export function canManageBooks(role: UserRole | null | undefined): boolean {
-  return role === 'admin' || role === 'librarian';
+  return role === 'librarian';
 }
 
 export function canManageUsers(role: UserRole | null | undefined): boolean {

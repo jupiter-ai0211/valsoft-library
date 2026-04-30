@@ -63,7 +63,7 @@ export const loanService = {
       .select(`
         *,
         book:books(id, title, author, isbn, cover_url),
-        user:profiles(id, full_name, email)
+        user:profiles(id, full_name)
       `)
       .eq('user_id', userId);
 
@@ -83,7 +83,7 @@ export const loanService = {
       .select(`
         *,
         book:books(id, title, author, isbn, cover_url),
-        user:profiles(id, full_name, email)
+        user:profiles(id, full_name)
       `);
 
     if (status) {

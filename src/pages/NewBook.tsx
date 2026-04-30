@@ -9,7 +9,7 @@ import { useState } from 'react';
 
 export default function NewBook() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,8 +30,30 @@ export default function NewBook() {
     }
   };
 
+  // Check authorization
+  const isAuthorized = user?.id && profile?.role && ['admin', 'librarian'].includes(profile.role);
+
+  if (!isAuthorized) {
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 text-red-600">Access Denied</h2>
+            <p className="text-gray-600 mt-2">You don't have permission to add books</p>
+            <button
+              onClick={() => navigate('/books')}
+              className="mt-4 text-blue-600 hover:text-blue-700"
+            >
+              Back to catalog
+            </button>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
   return (
-    <ProtectedRoute requiredRole="librarian">
+    <ProtectedRoute>
       <AppLayout>
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Header */}

@@ -5,6 +5,7 @@ import BookForm from '../components/BookForm';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { CreateBookInput, Book } from '../types/book';
 import { bookService } from '../services/bookService';
+import { useAuthStore } from '../store/authStore';
 
 export default function EditBook() {
   const { id } = useParams<{ id: string }>();
@@ -76,8 +77,32 @@ export default function EditBook() {
     );
   }
 
+  const { profile } = useAuthStore();
+
+  // Check authorization
+  const isAuthorized = profile?.role && ['admin', 'librarian'].includes(profile.role);
+
+  if (!isAuthorized) {
+    return (
+      <ProtectedRoute>
+        <AppLayout>
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 text-red-600">Access Denied</h2>
+            <p className="text-gray-600 mt-2">You don't have permission to edit books</p>
+            <button
+              onClick={() => navigate('/books')}
+              className="mt-4 text-blue-600 hover:text-blue-700"
+            >
+              Back to catalog
+            </button>
+          </div>
+        </AppLayout>
+      </ProtectedRoute>
+    );
+  }
+
   return (
-    <ProtectedRoute requiredRole="librarian">
+    <ProtectedRoute>
       <AppLayout>
         <div className="max-w-2xl mx-auto space-y-6">
           {/* Header */}
