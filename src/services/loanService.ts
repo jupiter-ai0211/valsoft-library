@@ -129,4 +129,23 @@ export const loanService = {
     if (error) throw error;
     return data || [];
   },
+
+  async getReturnedBooks(userId: string): Promise<any[]> {
+    const { data, error } = await supabase
+      .from('loans')
+      .select(`
+        id,
+        book:books(id, title, author, isbn, category, description, cover_url)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'returned')
+      .order('checked_in_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // Extract and return just the book objects
+    return (data || [])
+      .filter(loan => loan.book)
+      .map(loan => loan.book);
+  },
 };

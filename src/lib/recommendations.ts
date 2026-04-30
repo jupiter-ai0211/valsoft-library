@@ -74,10 +74,14 @@ export function getBorrowingHistoryRecommendations(
 
   const categoryCount: Record<string, number> = {};
   const authorCount: Record<string, number> = {};
+  const allBorrowedKeywords: string[] = [];
 
+  // Build keyword map from borrowed books
   borrowedBooks.forEach(book => {
     categoryCount[book.category] = (categoryCount[book.category] || 0) + 1;
     authorCount[book.author] = (authorCount[book.author] || 0) + 1;
+    const keywords = extractKeywords(book.title + ' ' + (book.description || ''));
+    allBorrowedKeywords.push(...keywords);
   });
 
   const recommendations: Recommendation[] = [];
@@ -87,21 +91,29 @@ export function getBorrowingHistoryRecommendations(
     if (book.status === 'borrowed') return;
 
     let score = 0;
+    let reason = '';
 
-    if (categoryCount[book.category]) {
-      score += categoryCount[book.category] * 30;
+    // Author match (highest priority)
+    if (authorCount[book.author]) {
+      score += authorCount[book.author] * 50;
+      reason = `By an author you enjoy`;
     }
 
-    if (authorCount[book.author]) {
-      score += authorCount[book.author] * 25;
+    // Category match (high priority)
+    if (categoryCount[book.category]) {
+      score += categoryCount[book.category] * 40;
+      reason = reason || `Popular in your favorite category`;
+    }
+
+    // Keyword match (medium priority)
+    const bookKeywords = extractKeywords(book.title + ' ' + (book.description || ''));
+    const matchingKeywords = bookKeywords.filter(kw => allBorrowedKeywords.includes(kw));
+    if (matchingKeywords.length > 0) {
+      score += matchingKeywords.length * 20;
+      reason = reason || `Related to your interests: ${matchingKeywords.slice(0, 2).join(', ')}`;
     }
 
     if (score > 0) {
-      const reason =
-        categoryCount[book.category] > 0
-          ? `Popular in your favorite category`
-          : `By an author you enjoy`;
-
       recommendations.push({
         book,
         score,

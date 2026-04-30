@@ -1,16 +1,22 @@
 import { useEffect, useState } from 'react';
 import AppLayout from '../components/AppLayout';
 import EmptyState from '../components/EmptyState';
+import RecommendationCard from '../components/RecommendationCard';
 import { Loan } from '../types/loan';
+import { Book } from '../types/book';
 import { loanService } from '../services/loanService';
+import { bookService } from '../services/bookService';
 import { useAuthStore } from '../store/authStore';
+import { getBorrowingHistoryRecommendations, Recommendation } from '../lib/recommendations';
 import { AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 export default function MyLoans() {
   const { user } = useAuthStore();
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
   const [returnedLoans, setReturnedLoans] = useState<Loan[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [borrowingLoading, setBorrowingLoading] = useState(false);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'active' | 'returned'>('active');
 
@@ -26,6 +32,22 @@ export default function MyLoans() {
 
         setActiveLoans(active);
         setReturnedLoans(returned);
+
+        // Load recommendations based on borrowing history
+        try {
+          const [allBooks, borrowedBooks] = await Promise.all([
+            bookService.getBooks(),
+            loanService.getReturnedBooks(user.id),
+          ]);
+
+          if (borrowedBooks.length > 0) {
+            const recs = getBorrowingHistoryRecommendations(borrowedBooks, allBooks);
+            setRecommendations(recs);
+          }
+        } catch (recError) {
+          console.error('Failed to load recommendations:', recError);
+          // Recommendations are optional, so don't fail the entire load
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load loans');
       } finally {
@@ -43,6 +65,38 @@ export default function MyLoans() {
       setReturnedLoans([...returnedLoans, activeLoans.find(l => l.id === loanId)!]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to return book');
+    }
+  };
+
+  const handleBorrow = async (bookId: string) => {
+    if (!user?.id) return;
+
+    try {
+      setBorrowingLoading(true);
+      const newLoan = await loanService.borrowBook(bookId, user.id);
+      
+      // Add to active loans
+      const updatedLoans = await loanService.getUserLoans(user.id, 'active');
+      setActiveLoans(updatedLoans);
+      
+      // Refresh recommendations
+      try {
+        const [allBooks, borrowedBooks] = await Promise.all([
+          bookService.getBooks(),
+          loanService.getReturnedBooks(user.id),
+        ]);
+
+        if (borrowedBooks.length > 0) {
+          const recs = getBorrowingHistoryRecommendations(borrowedBooks, allBooks);
+          setRecommendations(recs);
+        }
+      } catch (recError) {
+        console.error('Failed to refresh recommendations:', recError);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to borrow book');
+    } finally {
+      setBorrowingLoading(false);
     }
   };
 
@@ -112,74 +166,99 @@ export default function MyLoans() {
 
         {/* Active Loans */}
         {tab === 'active' && (
-          <div className="space-y-4">
-            {activeLoans.length === 0 ? (
-              <EmptyState
-                title="No active loans"
-                description="You haven't borrowed any books yet. Visit the catalog to find something to read!"
-              />
-            ) : (
-              <div className="space-y-4">
-                {activeLoans.map(loan => (
-                  <div
-                    key={loan.id}
-                    className={`bg-white rounded-lg shadow p-6 ${
-                      isOverdue(loan.due_at) ? 'border-l-4 border-red-500' : ''
-                    }`}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      {/* Book Info */}
-                      <div className="flex-1">
-                        <div className="flex items-start gap-4">
-                          {loan.book?.cover_url && (
-                            <img
-                              src={loan.book.cover_url}
-                              alt={loan.book.title}
-                              className="h-20 w-14 object-cover rounded"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = 'none';
-                              }}
-                            />
-                          )}
-                          <div>
-                            <h3 className="font-semibold text-gray-900">{loan.book?.title}</h3>
-                            <p className="text-sm text-gray-600">by {loan.book?.author}</p>
-                            <div className="mt-2 space-y-1 text-xs text-gray-600">
-                              <p>
-                                Borrowed: {formatDate(loan.checked_out_at)}
-                              </p>
-                              <p className={isOverdue(loan.due_at) ? 'text-red-600 font-semibold' : ''}>
-                                Due: {formatDate(loan.due_at)}
-                                {isOverdue(loan.due_at) && ' (Overdue!)'}
-                              </p>
+          <div className="space-y-8">
+            <div className="space-y-4">
+              {activeLoans.length === 0 ? (
+                <EmptyState
+                  title="No active loans"
+                  description="You haven't borrowed any books yet. Visit the catalog to find something to read!"
+                />
+              ) : (
+                <div className="space-y-4">
+                  {activeLoans.map(loan => (
+                    <div
+                      key={loan.id}
+                      className={`bg-white rounded-lg shadow p-6 ${
+                        isOverdue(loan.due_at) ? 'border-l-4 border-red-500' : ''
+                      }`}
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        {/* Book Info */}
+                        <div className="flex-1">
+                          <div className="flex items-start gap-4">
+                            {loan.book?.cover_url && (
+                              <img
+                                src={loan.book.cover_url}
+                                alt={loan.book.title}
+                                className="h-20 w-14 object-cover rounded"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            )}
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{loan.book?.title}</h3>
+                              <p className="text-sm text-gray-600">by {loan.book?.author}</p>
+                              <div className="mt-2 space-y-1 text-xs text-gray-600">
+                                <p>
+                                  Borrowed: {formatDate(loan.checked_out_at)}
+                                </p>
+                                <p className={isOverdue(loan.due_at) ? 'text-red-600 font-semibold' : ''}>
+                                  Due: {formatDate(loan.due_at)}
+                                  {isOverdue(loan.due_at) && ' (Overdue!)'}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Status and Action */}
-                      <div className="flex flex-col items-end gap-2">
-                        {isOverdue(loan.due_at) ? (
-                          <div className="flex items-center gap-1 text-red-600 text-sm font-semibold">
-                            <AlertCircle size={16} />
-                            Overdue
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 text-green-600 text-sm font-semibold">
-                            <Clock size={16} />
-                            Active
-                          </div>
-                        )}
-                        <button
-                          onClick={() => handleReturn(loan.id, loan.book_id)}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
-                        >
-                          Return Book
-                        </button>
+                        {/* Status and Action */}
+                        <div className="flex flex-col items-end gap-2">
+                          {isOverdue(loan.due_at) ? (
+                            <div className="flex items-center gap-1 text-red-600 text-sm font-semibold">
+                              <AlertCircle size={16} />
+                              Overdue
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 text-green-600 text-sm font-semibold">
+                              <Clock size={16} />
+                              Active
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleReturn(loan.id, loan.book_id)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+                          >
+                            Return Book
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recommendations Section */}
+            {recommendations.length > 0 && (
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Recommended for you</h2>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Based on your borrowing history
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {recommendations.map(rec => (
+                    <RecommendationCard
+                      key={rec.book.id}
+                      book={rec.book}
+                      reason={rec.reason}
+                      onAddBook={handleBorrow}
+                      loading={borrowingLoading}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
